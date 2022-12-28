@@ -2,15 +2,18 @@ const jwt = require("jsonwebtoken");
 
 const config = process.env;
 
+function decodeJwt(token) {
+  var base64Payload = token.split(".")[1];
+  var payloadBuffer = Buffer.from(base64Payload, "base64");
+  return JSON.parse(payloadBuffer.toString());
+}
 const verifyToken = (req, res, next) => {
-  const token =
-    req.body.token || req.query.token || req.headers["x-access-token"];
-
+  const token = req.headers?.["bearer"];
   if (!token) {
-    return res.status(403).send("A token is required for authentication");
+    return res.status(403).send("Authentication Failed");
   }
   try {
-    const decoded = jwt.verify(token, config.TOKEN_KEY);
+    const decoded = decodeJwt(token);
     req.user = decoded;
   } catch (err) {
     return res.status(401).send("Invalid Token");

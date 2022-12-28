@@ -7,7 +7,7 @@ const routes = [
     router: usersRouter
 },
 {
-    path: "/v1/auth",
+    path: "/auth",
     router: authRouter
 }
 ]
