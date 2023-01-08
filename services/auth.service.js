@@ -19,8 +19,9 @@ module.exports.registerUser = async (req, res, next) => {
   // Our register logic starts here
   try {
     // Get user input
+   
     const { email, password } = req.body;
-
+    console.log(email, password)
     // Validate user input
     if (!(email && password)) {
       return res.status(400).send("All input is required");
@@ -33,7 +34,6 @@ module.exports.registerUser = async (req, res, next) => {
     if (rows?.length > 0) {
       return res.status(409).send("User Already Exist. Please Login");
     }
-
     //Encrypt user password
     const encryptedPassword = await bcrypt.hash(password, 10);
     if (encryptedPassword) {
@@ -53,7 +53,7 @@ module.exports.registerUser = async (req, res, next) => {
         2,
       ]);
       if (rows?.insertId) {
-        return res.status(201).json(rows.insertId);
+        return res.status(201).json(token);
       } else {
         next(err);
       }
@@ -128,7 +128,6 @@ module.exports.confirmOtp = async (req, res, next) => {
     const findUser = `SELECT email, auth, otp FROM matrimony.sample where email = ?`;
     const [userFound] = await pool.query(findUser, [email]);
     if (userFound?.length > 0) {
-      console.log(userFound[0]?.["otp"])
       if (userFound[0]?.["otp"] === otp) {
         const token = jwt.sign(
           { user_id: email, auth: userFound[0]?.auth },
@@ -141,7 +140,7 @@ module.exports.confirmOtp = async (req, res, next) => {
           "UPDATE matrimony.sample SET token = ? WHERE email = ?";
         const [inserToken] = await pool.query(insertUser, [token, email]);
         if (inserToken?.changedRows == 1) {
-          return res.status(200).json(`BEARER ${token}`);
+          return res.status(200).json(token);
         } else {
           return res.status(403).send("Authentication Failed");
         }
@@ -163,18 +162,20 @@ module.exports.confirmOtp = async (req, res, next) => {
 module.exports.loginUser = async (req, res) => {
   // Our login logic starts here
   try {
+    console.log(req.headers)
     // Get user input
     const { email, password } = req.body;
-
     // Validate user input
     if (!(email && password)) {
-      return res.status(400).send("All input is required");
+      return res.status(204).send("All input is required");
     }
     // Validate if user exist in our database
     const userData = `SELECT email, password, token FROM matrimony.sample where email = ?`;
-
     const [user] = await pool.query(userData, [email]);
     const userPassword = user[0]?.["password"];
+    if(!userPassword){
+      return res.status(404).send("User Not Found");
+    }
     if (userPassword && (await bcrypt.compare(password, userPassword))) {
       // Create token
       const token = jwt.sign(
@@ -194,7 +195,7 @@ module.exports.loginUser = async (req, res) => {
         user[0]?.["email"],
       ]);
       if (inserToken?.changedRows == 1) {
-        return res.status(200).json(`BEARER ${token}`);
+        return res.status(200).json(token);
       } else {
         next(err);
       }

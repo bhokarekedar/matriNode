@@ -8,13 +8,19 @@ function decodeJwt(token) {
   return JSON.parse(payloadBuffer.toString());
 }
 const verifyToken = (req, res, next) => {
-  const token = req.headers?.["bearer"];
-  if (!token) {
-    return res.status(403).send("Authentication Failed");
-  }
+  const token = req?.headers?.bearer;
   try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    if (!token) {
+      return res.status(403).send("Authentication Failed");
+    }
+   else if(verified?.user_id){
     const decoded = decodeJwt(token);
     req.user = decoded;
+    }
+    else{
+      return res.status(403).send("Authentication Failed");
+    }
   } catch (err) {
     return res.status(401).send("Invalid Token");
   }
